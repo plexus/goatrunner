@@ -2,7 +2,9 @@
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
             [clojure.walk :as walk]
-            [hickory.core :as hickory]))
+            [clojure.zip :as zip]
+            [hickory.core :as hickory]
+            [hickory.zip :refer :all]))
 
 (defn extract-svg
   "Not the most elegant, traverse a Hiccup style parsing of an SVG to find the <svg>"
@@ -24,14 +26,36 @@
                      node))
                  svg))
 
-(defn svg-to-g [svg]
-  (walk/postwalk (fn [node]
-                   (if (= node :svg)
-                     :g
-                     node)) 
-                 svg))
+(defn svg-to-g [[_ _ & children]]
+  (into [:g {}] children))
 
-(defmacro svg-resource [name]
+
+(defn print-tree [original]
+  (loop [loc (zip/seq-zip (seq original))]
+    (if (zip/end? loc)
+      (zip/root loc)
+      (recur (zip/next
+                (do (println (zip/node loc))
+                    loc))))))
+
+(defn clean-up-svg [svg]
+  (loop [loc (hiccup-zip svg)]
+    (if (zip/end? loc)
+      (zip/root loc)
+      (let [[tag attrs] (zip/node loc)]
+        (if (or (= tag :metadata) (and (keyword? tag) (re-find #":" (name tag))))
+          (recur (zip/remove loc))
+          (recur (zip/next loc)))))))
+
+(defn remove-text-nodes [svg]
+  (vec
+   (remove string?
+           (map (fn [e] 
+                  (if (vector? e) 
+                    (remove-text-nodes e)
+                    e)) svg))))
+
+(defn -svg-resource [name]
   (->
    (str name ".svg")
    io/resource
@@ -40,6 +64,13 @@
    hickory/parse
    hickory/as-hiccup
    extract-svg
+   clean-up-svg
+   remove-text-nodes
    style-to-map
    svg-to-g))
+
+(defmacro svg-resource [name]
+  (-svg-resource name))
+
+
 
