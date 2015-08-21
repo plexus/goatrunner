@@ -2,7 +2,7 @@
   (:require [cljs.core.async :as async :refer [>! <! chan put! close! timeout]]
             [goatrunner.dimensions :refer [bl->px x-y width-blocks height-blocks block-px width-px height-px] :as dim]
             [goatrunner.key-queue :as keyq]
-            [goatrunner.levels :refer [level-1 goat-pos svg-level-tiles] :as l]
+            [goatrunner.levels :refer [svg-level-tiles] :as l]
             [goatrunner.tiles :as tiles]
             [om.core :as om :include-macros true]
             [om.dom :as dom :include-macros true]
@@ -11,17 +11,13 @@
 
 (enable-console-print!)
 
-(def app-state (atom {:level level-1
-                      :goat-pos {:x (first (goat-pos level-1))
-                                 :y (last (goat-pos level-1))}}))
-
+(def app-state (atom (l/level-state l/level-1)))
 
 (def key-state (atom nil))
 
-(def speed 4)
+(def goat-speed 4)
 
-(defn find-next-tile [level dir x y]
-  (l/select-tile level (dim/next-tile dir x y)))
+(def dog-speed 2)
 
 (def solid? #{:brick})
 (def supportive? #{:brick :ladder})
@@ -38,31 +34,46 @@
   (not (some solid?
              (l/select-tiles level
               (dim/all-coords
-               (dim/move dir x y speed))))))
+               (dim/move dir x y goat-speed))))))
 
 
-(defn attempt-move [app dir]
-  (let [{x :x y :y} (:goat-pos app)
-        level (:level app)
+(defn attempt-move [level animal dir speed]
+  (let [{x :x y :y} animal
         can-move (can-move? level dir x y)
         ladder (ladder? level x y)]
-    (println can-move)
     (if (or (and (#{:left :right :down} dir) can-move)
             (and (#{:up :down} dir) ladder))
       (let [[new-x new-y] (dim/move dir x y speed)]
-        (om/update! app [:goat-pos] {:x new-x :y new-y})))))
-
+        (om/update! animal {:x new-x :y new-y})))))
 
 (defn next-tick-goat [app]
-  (let [{level :level {x :x y :y} :goat-pos} app
+  (let [{level :level goat-pos :goat-pos} app
+        {x :x y :y} goat-pos
         key @key-state]
     (cond
-      (falling? level x y) (attempt-move app :down)
-      (#{:left :right :up :down} key) (attempt-move app key))))
+      (falling? level x y) (attempt-move level goat-pos :down goat-speed)
+      (#{:left :right :up :down} key) (attempt-move level goat-pos key goat-speed))))
+
+(defn next-tick-dogs [level dogs goat]
+  (doseq [idx (range (count dogs))]
+    (let [dog (get dogs idx)
+          {dx :x dy :y} dog
+          {gx :x gy :y} goat
+          ladder (ladder? level dx dy)
+          left-ok (can-move? level :left dx dy)
+          right-ok (can-move? level :left dx dy)
+          dir (cond (falling? level dx dy) :down
+                    (and (> gy dy) ladder) :down
+                    (and (< gy dy) ladder) :up
+                    (and (> gx dx) right-ok) :right
+                    (and (< gx dx) left-ok) :left)]
+      (if dir
+        (attempt-move level dog dir dog-speed)))))
 
 (defn next-tick [app]
-  (if (om/transactable? app)
-    (next-tick-goat app)))
+  (when (om/transactable? app)
+    (next-tick-goat app)
+    (next-tick-dogs (:level app) (:dogs app) (:goat-pos app))))
 
 (defn square [x y fill]
   [:rect {:x (bl->px x)
@@ -93,18 +104,36 @@
   (reify
     om/IRender
     (render [this]
-      (html (x-y tiles/svg-goat (:x goat-pos) (:y goat-pos))))))
+      (html
+       [:svg {:width 36
+              :height 36
+              :style {:left (:x goat-pos) :top (:y goat-pos) :position "absolute"}}
+        tiles/svg-goat]))))
+
+(defn c-dogs [dogs-pos owner]
+  (reify
+    om/IRender
+    (render [this]
+      (html 
+       [:div
+        (map (fn [dog]
+               [:svg {:width 36 :height 36 :style {:position "absolute" :left (:x dog) :top (:y dog)}} 
+                tiles/svg-dog])
+             dogs-pos)]))))
 
 (defn c-svg [data owner]
   (reify
     om/IRender
     (render [this]
       (html
-       [:svg {:width (str width-px "px")
-              :height (str height-px "px")
-              :style {:background-color "black"}}
-        (om/build c-level-tiles (:level data))
-        (om/build c-goat (:goat-pos data))]))))
+       [:div
+        [:svg {:width (str width-px "px")
+               :height (str height-px "px")
+               :style {:background-color "black" :left 0 :top 0 :position "absolute"}}
+         (om/build c-level-tiles (:level data)) ]
+        (om/build c-goat (:goat-pos data))
+        ;;(om/build c-dogs (:dogs data))        
+        ]))))
 
 (defn c-debug [cursor owner]
   (reify
@@ -114,7 +143,7 @@
             {x :x y :y} goat-pos
             level (:level cursor)]
         (html
-         [:div
+         [:div {:style {:position "absolute" :top 1080 :left 0}}
           [:pre (str (into {} goat-pos))]
           [:pre (str "bx: " (dim/px->bl x) " by: " (dim/px->bl y))]
           [:pre (str "falling? " (falling? level x y))]
@@ -122,14 +151,12 @@
           [:pre (str {"@key-state:" @key-state})]])))))
 
 
-(defn handle-key [key app]
-  (case key
-    "left"  (swap! key-state (fn [_] :left))
-    "right" (swap! key-state (fn [_] :right))
-    "up"  (swap! key-state (fn [_] :up))
-    "down" (swap! key-state (fn [_] :down))
-    "keyup" (swap! key-state (fn [_] nil))
-    nil))
+(defn handle-key [key]
+  (if (#{"left" "right" "up" "down"} key)
+    (if (not (= (str @key-state) key))
+      (swap! key-state (constantly (keyword key))))
+    (if (= "keyup" key)
+      (swap! key-state (constantly nil)))))
 
 (defn c-root [app owner]
   (let [unmount-ch (chan)]
@@ -142,7 +169,7 @@
           (go-loop [ticker (timeout poll-ms)]
             (alt!
               key-ch ([key _] 
-                      (handle-key key (om/get-props owner))
+                      (handle-key key)
                       (recur ticker))
               ticker ([_ _]
                       (next-tick (om/get-props owner))

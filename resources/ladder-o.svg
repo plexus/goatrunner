@@ -1,13 +1,13 @@
 <svg height="36" width="36" >
- <g id="layer1" transform="translate(0 -1016.4)" fill="#fff">
-  <g id="g12393" transform="translate(1.9774)">
-   <path id="path12379" style="color:#000000" d="m3.191 1016.2h5.4271v36.95h-5.4271z"/>
-   <path id="path12383" style="color:#000000" d="m23.427 1016.2h5.4271v36.95h-5.4271z"/>
+  <g id="layer1" transform="translate(0 -1016.4)" fill="#fff">
+    <g id="g12393" transform="translate(1.9774)">
+      <path id="path12379" style="color:#000000" d="m3.191 1016.2h5.4271v36.95h-5.4271z"/>
+      <path id="path12383" style="color:#000000" d="m23.427 1016.2h5.4271v36.95h-5.4271z"/>
+    </g>
+    <rect id="rect12397" style="color:#000000" rx="0" ry="0" height="2.3065" width="16.915" y="1019" x="9.6332"/>
+    <rect id="rect12399" style="color:#000000" rx="0" ry="0" height="2.3065" width="16.915" y="1026.1" x="9.2261"/>
+    <rect id="rect12401" style="color:#000000" rx="0" ry="0" height="2.3065" width="16.915" y="1033.2" x="9.4523"/>
+    <rect id="rect12403" style="color:#000000" rx="0" ry="0" height="2.3065" width="16.915" y="1047.4" x="9.4523"/>
+    <rect id="rect12415" style="color:#000000" rx="0" ry="0" height="2.3065" width="16.915" y="1040.3" x="9.4523"/>
   </g>
-  <rect id="rect12397" style="color:#000000" rx="0" ry="0" height="2.3065" width="16.915" y="1019" x="9.6332"/>
-  <rect id="rect12399" style="color:#000000" rx="0" ry="0" height="2.3065" width="16.915" y="1026.1" x="9.2261"/>
-  <rect id="rect12401" style="color:#000000" rx="0" ry="0" height="2.3065" width="16.915" y="1033.2" x="9.4523"/>
-  <rect id="rect12403" style="color:#000000" rx="0" ry="0" height="2.3065" width="16.915" y="1047.4" x="9.4523"/>
-  <rect id="rect12415" style="color:#000000" rx="0" ry="0" height="2.3065" width="16.915" y="1040.3" x="9.4523"/>
- </g>
 </svg>

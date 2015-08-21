@@ -29,7 +29,6 @@
 (defn svg-to-g [[_ _ & children]]
   (into [:g {}] children))
 
-
 (defn print-tree [original]
   (loop [loc (zip/seq-zip (seq original))]
     (if (zip/end? loc)
@@ -54,6 +53,7 @@
                   (if (vector? e) 
                     (remove-text-nodes e)
                     e)) svg))))
+
 
 (defn -svg-resource [name]
   (->

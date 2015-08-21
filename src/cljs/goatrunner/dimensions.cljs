@@ -20,6 +20,9 @@
 (defn pos->coord [coord]
   (mapv (comp round px->bl) coord))
 
+(defn coord->pos [pos]
+  (mapv bl->px pos))
+
 (def width-blocks 28)
 (def height-blocks 21)
 
@@ -27,11 +30,8 @@
 (def height-px (bl->px height-blocks))
 
 (defn x-y [obj x y]
-  (try
-    (assoc obj 1 (merge (get obj 1) {:transform (str "translate(" x "," y ")") 
-                                     :key (str x "-" y)}))
-    (catch js/Object error
-      (println error "while working on" obj))))
+  (assoc obj 1 (merge (get obj 1) {:transform (str "translate(" x "," y ")") 
+                                   :key (str x "-" y)})))
 
 (defn id [a & args] a)
 

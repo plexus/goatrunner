@@ -1,5 +1,5 @@
 (ns goatrunner.levels
-  (:require [goatrunner.dimensions :refer [bl->px width-blocks height-blocks x-y]]
+  (:require [goatrunner.dimensions :refer [bl->px width-blocks height-blocks x-y] :as dim]
             [goatrunner.tiles :as t]))
 
 (def _ false)
@@ -53,12 +53,21 @@
   (map (fn [[x y]] [(+ x xoffset) (+ y yoffset)])
        coords))
 
-(defn goat-pos [level]
-  (let [[bx by _] (-> level-1
-                      level->coords 
-                      (filter-tiles :goat)
-                      first)]
-    [(bl->px bx) (bl->px by)]))
+(defn select-tile-coords [level tile]
+  (map dim/coord->pos
+       (-> level-1
+           level->coords 
+           (filter-tiles tile))))
+
+(defn coord->map [[x y]]
+  {:x x :y y})
+
+(defn level-state [level]
+  (let [goat (first (select-tile-coords level :goat))
+        dogs (select-tile-coords level :dog)]
+    {:level level
+     :goat-pos (coord->map goat)
+     :dogs (mapv coord->map dogs)}))
 
 (defn svg-level-tiles [level]
   (map (fn [[x y tile]] 

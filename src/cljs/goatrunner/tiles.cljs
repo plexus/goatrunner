@@ -7,5 +7,4 @@
 (def svg-dog (svg-resource "dog-o"))
 
 (def tiles {:brick svg-brick
-            :ladder svg-ladder
-            :dog svg-dog})
+            :ladder svg-ladder})
